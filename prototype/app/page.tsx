@@ -2,17 +2,32 @@
 
 import { useState } from 'react';
 import {
-  ArrowRight, CalendarDays, ChevronRight, Clock3, HeartHandshake,
+  ArrowRight, CalendarDays, ChevronDown, ChevronRight, Clock3, HeartHandshake,
   Mail, MapPin, Menu, PlayCircle, Users, X,
 } from 'lucide-react';
 
-type View = 'home' | 'visit' | 'ministries' | 'events';
-const navItems: Array<{ label: string; view: View }> = [
-  { label: 'Home', view: 'home' },
-  { label: 'Plan Your Visit', view: 'visit' },
-  { label: 'Ministries', view: 'ministries' },
-  { label: 'Events', view: 'events' },
-];
+type View = 'home' | 'visit' | 'ministries' | 'family' | 'events';
+type NavKey = 'new' | 'worship' | 'connect' | 'serve' | 'events' | 'about';
+const navigation: Record<NavKey, { label: string; intro: string; items: Array<{ label: string; action?: View; note?: string }> }> = {
+  new: { label: 'I’m New', intro: 'Everything you need for a comfortable first Sunday.', items: [
+    { label: 'Plan Your Visit', action: 'visit', note: 'Start here' }, { label: 'What to Expect', action: 'visit' }, { label: 'Children on Sundays', action: 'family' }, { label: 'Accessibility', action: 'visit' }, { label: 'Directions & Parking', action: 'visit' }, { label: 'Contact Us', action: 'visit' },
+  ]},
+  worship: { label: 'Worship', intro: 'Gather with us in person or online.', items: [
+    { label: 'Sunday Worship', action: 'visit' }, { label: 'Watch Online' }, { label: 'Sermons' }, { label: 'Music', action: 'ministries' }, { label: 'Prayer' },
+  ]},
+  connect: { label: 'Connect', intro: 'Find people and a place to grow.', items: [
+    { label: 'Children & Families', action: 'family', note: 'L2 example' }, { label: 'Youth' }, { label: 'Adults' }, { label: 'Small Groups' }, { label: 'Fellowship' }, { label: 'Pastoral Care' },
+  ]},
+  serve: { label: 'Serve', intro: 'Put faith into action in church and community.', items: [
+    { label: 'Community Outreach' }, { label: 'Mission Partners' }, { label: 'Volunteer at Church' }, { label: 'Current Needs' },
+  ]},
+  events: { label: 'Events', intro: 'See what is happening in church life.', items: [
+    { label: 'Upcoming Events', action: 'events' }, { label: 'Church Calendar', action: 'events' }, { label: 'Special Services', action: 'events' },
+  ]},
+  about: { label: 'About Us', intro: 'Learn about our faith, people, and story.', items: [
+    { label: 'Our Story' }, { label: 'What We Believe' }, { label: 'Leadership' }, { label: 'Staff' }, { label: 'Governance' }, { label: 'News' },
+  ]},
+};
 const ministries = [
   { title: 'Children & Families', text: 'A welcoming place for children to participate, learn, and grow in faith.', icon: Users },
   { title: 'Music', text: 'Share in worship through voices, instruments, bells, and joyful community.', icon: PlayCircle },
@@ -22,11 +37,14 @@ const ministries = [
 export default function Home() {
   const [view, setView] = useState<View>('home');
   const [menuOpen, setMenuOpen] = useState(false);
+  const [openNav, setOpenNav] = useState<NavKey | null>(null);
   const go = (next: View) => {
     setView(next);
     setMenuOpen(false);
+    setOpenNav(null);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
+  const choose = (item: { label: string; action?: View }) => item.action ? go(item.action) : setOpenNav(null);
 
   return (
     <div className="site-shell">
@@ -38,9 +56,9 @@ export default function Home() {
           <span><strong>First Presbyterian</strong><small>Church of Newark</small></span>
         </button>
         <nav className="desktop-nav" aria-label="Primary navigation">
-          {navItems.map((item) => (
-            <button key={item.view} className={view === item.view ? 'active' : ''} onClick={() => go(item.view)}>
-              {item.label}
+          {(Object.keys(navigation) as NavKey[]).map((key) => (
+            <button key={key} className={openNav === key ? 'active' : ''} onClick={() => setOpenNav(openNav === key ? null : key)} aria-expanded={openNav === key}>
+              {navigation[key].label} <ChevronDown />
             </button>
           ))}
           <a className="nav-link" href="https://www.newarkpres.org/give/" target="_blank" rel="noreferrer">Give</a>
@@ -49,9 +67,10 @@ export default function Home() {
           {menuOpen ? <X /> : <Menu />}<span>{menuOpen ? 'Close' : 'Menu'}</span>
         </button>
       </header>
+      {openNav && <MegaMenu navKey={openNav} choose={choose} close={() => setOpenNav(null)} />}
       {menuOpen && (
         <nav id="mobile-menu" className="mobile-nav" aria-label="Mobile navigation">
-          {navItems.map((item) => <button key={item.view} onClick={() => go(item.view)}>{item.label}</button>)}
+          {(Object.keys(navigation) as NavKey[]).map((key) => <div className="mobile-group" key={key}><strong>{navigation[key].label}</strong>{navigation[key].items.map((item) => <button key={item.label} onClick={() => choose(item)}>{item.label}</button>)}</div>)}
           <a href="https://www.newarkpres.org/give/" target="_blank" rel="noreferrer">Give</a>
         </nav>
       )}
@@ -59,6 +78,7 @@ export default function Home() {
         {view === 'home' && <HomeView go={go} />}
         {view === 'visit' && <VisitView go={go} />}
         {view === 'ministries' && <MinistriesView go={go} />}
+        {view === 'family' && <FamilyView go={go} />}
         {view === 'events' && <EventsView go={go} />}
       </main>
       <footer>
@@ -72,6 +92,11 @@ export default function Home() {
       </footer>
     </div>
   );
+}
+
+function MegaMenu({ navKey, choose, close }: { navKey: NavKey; choose: (item: { label: string; action?: View }) => void; close: () => void }) {
+  const group = navigation[navKey];
+  return <section className="mega-menu" aria-label={`${group.label} menu`}><div className="mega-intro"><span className="level-tag">L1</span><p className="eyebrow">{group.label}</p><h2>{group.intro}</h2><button onClick={close}>Close menu <X /></button></div><div className="mega-links"><p className="menu-level"><span className="level-tag">L2</span> Choose a topic</p>{group.items.map((item) => <button key={item.label} onClick={() => choose(item)}><span>{item.label}{item.note && <small>{item.note}</small>}</span><ChevronRight /></button>)}</div></section>;
 }
 
 function HomeView({ go }: { go: (view: View) => void }) {
@@ -127,6 +152,11 @@ function VisitView({ go }: { go: (view: View) => void }) {
 
 function MinistriesView({ go }: { go: (view: View) => void }) {
   return <><PageIntro eyebrow="Find your people" title="Faith grows in community." text="A simple overview helps visitors understand where they might connect without requiring church vocabulary." /><section className="ministry-list section-pad">{ministries.map(({ title, text, icon: Icon }) => <article key={title}><Icon /><div><h2>{title}</h2><p>{text}</p></div><ChevronRight /></article>)}</section><section className="visit-cta section-pad"><p className="eyebrow light">Not sure where to begin?</p><h2>Start with a Sunday.</h2><p>Come meet the community and ask questions at your own pace.</p><button className="button cream" onClick={() => go('visit')}>Plan your visit <ArrowRight /></button></section></>;
+}
+
+function FamilyView({ go }: { go: (view: View) => void }) {
+  const topics = [['Sunday Experience', 'What children and parents can expect during worship.'], ['Age Groups', 'A simple view of opportunities by age and stage.'], ['Family Events', 'Upcoming ways for families to connect.'], ['Safety & Registration', 'Clear policies and registration information.']];
+  return <><section className="hierarchy-demo section-pad"><p><span className="level-tag">L1</span> Connect <ChevronRight /> <span className="level-tag">L2</span> Children &amp; Families</p><small>Prototype annotation: the finished website would show a normal breadcrumb without the L1/L2 labels.</small></section><PageIntro eyebrow="Children & families" title="A place for every generation." text="This representative landing page shows how an L2 topic introduces the ministry and guides families to more specific L3 information." /><section className="l3-section section-pad"><div className="l3-heading"><span className="level-tag">L3</span><div><p className="eyebrow">Explore this ministry</p><h2>Choose the detail you need.</h2></div></div><div className="l3-grid">{topics.map(([title, text]) => <button key={title}><span><strong>{title}</strong><small>{text}</small></span><ChevronRight /></button>)}</div></section><section className="contact-strip"><div><HeartHandshake /><span><small>Ready to meet us?</small><strong>Families are welcome at Sunday worship.</strong></span></div><button className="button cream" onClick={() => go('visit')}>Plan your visit</button></section></>;
 }
 
 function EventsView({ go }: { go: (view: View) => void }) {
