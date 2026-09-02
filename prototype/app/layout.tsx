@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import './globals.css';
 
 export const metadata: Metadata = {
-  metadataBase: new URL('http://localhost:3000'),
+  metadataBase: new URL('https://newark-pres-modernization.anand-1667-yadav.chatgpt.site'),
   title: 'First Presbyterian Church of Newark — Modernization Prototype',
   description: 'A clickable concept for a clearer, warmer, and more accessible church website.',
   openGraph: {
